@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   Calendar, 
   Plus, 
@@ -13,7 +12,8 @@ import {
   Trash2,
   Bell,
   LogOut,
-  User
+  User,
+  Star
 } from 'lucide-react';
 
 export { 
@@ -30,5 +30,6 @@ export {
   Trash2,
   Bell,
   LogOut,
-  User
+  User,
+  Star
 };

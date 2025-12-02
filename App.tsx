@@ -15,6 +15,7 @@ const App: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date()); // For Calendar Month View
   const [selectedDate, setSelectedDate] = useState(new Date()); // For Selected Day
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isDataLoaded, setIsDataLoaded] = useState(false); // New flag to prevent data overwrite
   
   // Modals
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -36,6 +37,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!currentUser) {
         setEvents([]);
+        setIsDataLoaded(false); // Reset loaded flag
         return;
     }
 
@@ -50,9 +52,10 @@ const App: React.FC = () => {
         setEvents([]);
       }
     } else {
-        // Initialize with empty or sample if brand new user
+        // Initialize with empty if brand new user
         setEvents([]);
     }
+    setIsDataLoaded(true); // Mark data as loaded
 
     // Request notification permission on login
     if ("Notification" in window) {
@@ -62,13 +65,15 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  // Save to local storage whenever events change (and user is logged in)
+  // Save to local storage whenever events change (and user is logged in AND data is loaded)
   useEffect(() => {
-    if (currentUser) {
+    // CRITICAL FIX: Only save if we have a user AND data has been loaded at least once.
+    // This prevents overwriting existing data with empty [] initial state on reload.
+    if (currentUser && isDataLoaded) {
         const storageKey = `ischedule-events-${currentUser}`;
         localStorage.setItem(storageKey, JSON.stringify(events));
     }
-  }, [events, currentUser]);
+  }, [events, currentUser, isDataLoaded]);
 
   // Check for reminders AND Daily 5 AM Briefing
   useEffect(() => {
@@ -83,16 +88,27 @@ const App: React.FC = () => {
         events.forEach(event => {
             if (event.reminderMinutes !== undefined && event.reminderMinutes !== null) {
                 const startTime = new Date(event.startTime).getTime();
+                // reminderMinutes is actually calculated from days: days * 24 * 60
                 const triggerTime = startTime - (event.reminderMinutes * 60000);
                 
                 // If the trigger time is within the window since last check
                 if (triggerTime > lastCheck && triggerTime <= now) {
                     // Send notification
                     if ("Notification" in window && Notification.permission === "granted") {
-                        new Notification(`Nhắc nhở: ${event.title}`, {
-                            body: event.reminderMinutes === 0 
-                                ? `Sự kiện đang diễn ra tại ${event.location || 'không xác định'}` 
-                                : `Sự kiện sẽ diễn ra trong ${event.reminderMinutes} phút nữa.`,
+                        const daysLeft = Math.round(event.reminderMinutes / 1440);
+                        const isToday = daysLeft <= 0;
+                        
+                        const prefix = event.isMajorEvent ? "⭐ [QUAN TRỌNG] " : "⏰ ";
+                        const timeStr = new Date(event.startTime).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'});
+                        const dateStr = new Date(event.startTime).toLocaleDateString('vi-VN', {day:'numeric', month:'numeric'});
+
+                        const title = `${prefix}Sắp đến hạn: ${event.title}`;
+                        const body = isToday 
+                            ? `Sự kiện diễn ra HÔM NAY lúc ${timeStr}.` 
+                            : `Sự kiện diễn ra vào ngày ${dateStr} (còn ${daysLeft} ngày).`;
+
+                        new Notification(title, {
+                            body: body,
                             icon: '/favicon.ico'
                         });
                     }
@@ -151,6 +167,7 @@ const App: React.FC = () => {
       setCurrentUser(null);
       localStorage.removeItem('ischedule-current-user');
       setEvents([]); // Clear current events from view
+      setIsDataLoaded(false);
   };
 
   // Date Handlers
@@ -177,7 +194,8 @@ const App: React.FC = () => {
         startTime: e.startTime!,
         endTime: e.endTime!,
         title: e.title!,
-        color: 'bg-ios-blue'
+        color: 'bg-ios-blue',
+        isMajorEvent: false // AI generated events are standard by default
     } as CalendarEvent));
     
     setEvents(prev => [...prev, ...processedEvents]);
@@ -195,7 +213,8 @@ const App: React.FC = () => {
             location: eventData.location,
             description: eventData.description,
             color: 'bg-ios-blue',
-            reminderMinutes: eventData.reminderMinutes
+            reminderMinutes: eventData.reminderMinutes,
+            isMajorEvent: eventData.isMajorEvent
         };
         setEvents(prev => [...prev, newEvent]);
     }
@@ -205,6 +224,7 @@ const App: React.FC = () => {
   const handleDeleteEvent = (id: string) => {
       if(window.confirm("Bạn có chắc muốn xóa sự kiện này?")) {
         setEvents(prev => prev.filter(e => e.id !== id));
+        setIsEventModalOpen(false); // Close modal after delete
       }
   };
 
@@ -225,7 +245,8 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 max-w-md mx-auto relative shadow-2xl overflow-hidden">
+    // Use 100dvh (dynamic viewport height) to fix Safari bottom bar issue
+    <div className="flex flex-col h-[100dvh] bg-gray-50 max-w-md mx-auto relative shadow-2xl overflow-hidden">
       
       {/* Header Area with User Info */}
       <div className="bg-white pt-safe-top sticky top-0 z-20 shadow-sm flex items-center justify-between px-4 pb-2 border-b border-gray-100">
@@ -296,8 +317,8 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom Floating Action Bar / Tab Bar */}
-      <div className="absolute bottom-6 left-0 right-0 px-6 flex justify-between items-end pointer-events-none">
+      {/* Bottom Floating Action Bar / Tab Bar - Add pb-safe-bottom */}
+      <div className="absolute bottom-0 left-0 right-0 px-6 pb-6 pt-4 flex justify-between items-end pointer-events-none bg-gradient-to-t from-gray-50/90 to-transparent">
          
          {/* AI Button (Left) */}
          <button 
@@ -311,7 +332,7 @@ const App: React.FC = () => {
          {/* Add Event Button (Center/Right main) */}
          <button 
             onClick={() => { setEditingEvent(null); setIsEventModalOpen(true); }}
-            className="pointer-events-auto w-14 h-14 rounded-full bg-ios-blue text-white shadow-lg shadow-blue-300 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+            className="pointer-events-auto w-14 h-14 rounded-full bg-ios-blue text-white shadow-lg shadow-blue-300 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform mb-1"
          >
             <Plus size={32} />
          </button>
@@ -329,6 +350,7 @@ const App: React.FC = () => {
         isOpen={isEventModalOpen}
         onClose={() => setIsEventModalOpen(false)}
         onSave={handleSaveEvent}
+        onDelete={handleDeleteEvent}
         selectedDate={selectedDate}
         initialEvent={editingEvent}
       />

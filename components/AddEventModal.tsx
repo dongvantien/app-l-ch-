@@ -120,7 +120,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
       
       {/* Modal Content - slide up on mobile */}
-      <div className="bg-gray-100 w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-xl z-10 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-gray-100 w-full max-w-lg sm:rounded-2xl rounded-t-2xl shadow-xl z-10 overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10 duration-200">
         <div className="flex justify-between items-center p-4 bg-gray-100 border-b border-gray-200">
           <button onClick={onClose} className="text-ios-blue text-base hover:opacity-70">Hủy</button>
           <h3 className="font-semibold text-gray-900">{initialEvent ? 'Sửa sự kiện' : 'Sự kiện mới'}</h3>
@@ -139,7 +139,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
             <input 
               type="text" 
               placeholder="Tiêu đề" 
-              className="w-full py-2 text-lg font-semibold placeholder-gray-300 outline-none"
+              className="w-full py-2 text-lg font-semibold placeholder-gray-300 outline-none text-gray-900"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
@@ -148,7 +148,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
 
           {/* Major Event Toggle */}
           <div className="bg-white rounded-xl overflow-hidden">
-             <div className="flex items-center justify-between px-4 py-3 cursor-pointer" onClick={() => setIsMajorEvent(!isMajorEvent)}>
+             <div className="flex items-center justify-between px-4 py-3 cursor-pointer active:bg-gray-50 transition-colors" onClick={() => setIsMajorEvent(!isMajorEvent)}>
                 <div className="flex items-center gap-3">
                     <div className={`p-1.5 rounded-full ${isMajorEvent ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
                         <Star size={18} fill={isMajorEvent ? "currentColor" : "none"} />
@@ -183,7 +183,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
              </div>
              
              {/* Toggle Reminder */}
-             <div className="flex items-center justify-between px-4 py-3 cursor-pointer" onClick={() => setHasReminder(!hasReminder)}>
+             <div className="flex items-center justify-between px-4 py-3 cursor-pointer active:bg-gray-50 transition-colors" onClick={() => setHasReminder(!hasReminder)}>
                 <div className="flex items-center gap-3">
                     <Bell size={20} className={hasReminder ? "text-ios-blue" : "text-gray-400"} />
                     <span className="text-gray-900">Bật nhắc nhở</span>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { CalendarEvent } from '../types';
-import { MapPin, List, Bell } from './Icons';
+import { MapPin, List, Bell, Star, Trash2 } from './Icons';
 
 interface AddEventModalProps {
   isOpen: boolean;
@@ -27,6 +27,9 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   // reminderDays: string to handle empty input nicely
   const [reminderDays, setReminderDays] = useState<string>(''); 
   const [hasReminder, setHasReminder] = useState(false);
+  
+  // Major Event state
+  const [isMajorEvent, setIsMajorEvent] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -36,6 +39,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         setDescription(initialEvent.description || '');
         setStartTime(new Date(initialEvent.startTime).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit', hour12: false}));
         setEndTime(new Date(initialEvent.endTime).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit', hour12: false}));
+        setIsMajorEvent(!!initialEvent.isMajorEvent);
         
         // Convert minutes back to days approx
         if (initialEvent.reminderMinutes !== undefined && initialEvent.reminderMinutes !== null) {
@@ -55,6 +59,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
         setEndTime('10:00');
         setHasReminder(false);
         setReminderDays('');
+        setIsMajorEvent(false);
       }
     }
   }, [isOpen, initialEvent]);
@@ -79,10 +84,14 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
 
     // Calculate reminder minutes based on days input
     let minutes: number | null = null;
-    if (hasReminder && reminderDays !== '') {
+    if (hasReminder) {
+        // Default to 0 days (same day) if empty or invalid, or let user type 0
         const days = parseInt(reminderDays);
         if (!isNaN(days) && days >= 0) {
             minutes = days * 24 * 60; // Convert days to minutes
+        } else {
+            // If active but empty, assume 0 days
+             minutes = 0; 
         }
     }
 
@@ -93,9 +102,16 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
       description,
       startTime: start.toISOString(),
       endTime: end.toISOString(),
-      reminderMinutes: minutes
+      reminderMinutes: minutes,
+      isMajorEvent: isMajorEvent
     });
     onClose();
+  };
+
+  const handleRemoveReminder = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setHasReminder(false);
+      setReminderDays('');
   };
 
   return (
@@ -127,6 +143,21 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
             />
+          </div>
+
+          {/* Major Event Toggle */}
+          <div className="bg-white rounded-xl overflow-hidden">
+             <div className="flex items-center justify-between px-4 py-3 cursor-pointer" onClick={() => setIsMajorEvent(!isMajorEvent)}>
+                <div className="flex items-center gap-3">
+                    <div className={`p-1.5 rounded-full ${isMajorEvent ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                        <Star size={18} fill={isMajorEvent ? "currentColor" : "none"} />
+                    </div>
+                    <span className="text-gray-900 font-medium">Sự kiện quan trọng</span>
+                </div>
+                <div className={`w-11 h-6 rounded-full transition-colors relative ${isMajorEvent ? 'bg-purple-500' : 'bg-gray-300'}`}>
+                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isMajorEvent ? 'translate-x-5' : ''}`}></div>
+                </div>
+             </div>
           </div>
 
           {/* Time & Reminder Section */}
@@ -163,8 +194,8 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
 
              {/* Days Input (Only show if reminder is on) */}
              {hasReminder && (
-                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50">
-                    <span className="text-gray-900 text-sm">Báo trước mấy ngày?</span>
+                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <span className="text-gray-900 text-sm">Báo trước (ngày)</span>
                     <div className="flex items-center gap-2">
                         <input
                             type="number"
@@ -172,9 +203,15 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                             placeholder="0"
                             value={reminderDays}
                             onChange={(e) => setReminderDays(e.target.value)}
-                            className="w-16 text-right p-1 rounded border border-gray-300 focus:border-ios-blue outline-none"
+                            className="w-16 text-right p-1.5 rounded border border-gray-300 focus:border-ios-blue outline-none bg-white text-gray-900"
                         />
-                        <span className="text-gray-500 text-sm">ngày</span>
+                        <button 
+                            onClick={handleRemoveReminder}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            title="Xóa lời nhắc"
+                        >
+                            <Trash2 size={18} />
+                        </button>
                     </div>
                  </div>
              )}

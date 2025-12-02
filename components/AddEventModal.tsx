@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { CalendarEvent } from '../types';
 import { MapPin, List, Bell, Star, Trash2 } from './Icons';
@@ -7,6 +6,7 @@ interface AddEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (event: Partial<CalendarEvent>) => void;
+  onDelete: (id: string) => void;
   selectedDate: Date;
   initialEvent?: CalendarEvent | null;
 }
@@ -15,6 +15,7 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
   isOpen, 
   onClose, 
   onSave, 
+  onDelete,
   selectedDate, 
   initialEvent 
 }) => {
@@ -239,6 +240,18 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({
                 />
              </div>
           </div>
+          
+          {/* Delete Button (Only for existing events) */}
+          {initialEvent && (
+            <button 
+                onClick={() => onDelete(initialEvent.id)}
+                className="w-full py-3.5 bg-white text-red-500 font-semibold rounded-xl shadow-sm border border-gray-100 active:bg-gray-50 transition-colors flex items-center justify-center gap-2 mb-4"
+            >
+                <Trash2 size={20} />
+                <span>Xóa sự kiện</span>
+            </button>
+          )}
+
         </div>
       </div>
     </div>

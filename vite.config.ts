@@ -9,9 +9,7 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       sourcemap: false,
     },
-    css: {
-      postcss: './postcss.config.js',
-    },
+    // Removed css: { postcss: ... } to let Vite auto-detect postcss.config.js
     define: {
       'process.env': {
         API_KEY: JSON.stringify(env.API_KEY || env.VITE_API_KEY)
